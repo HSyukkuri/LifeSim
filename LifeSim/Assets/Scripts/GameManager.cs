@@ -3,8 +3,32 @@ using System.Collections.Generic;
 using UnityEngine;
 using Cinemachine;
 
+[System.Serializable]
+public class ActionPlace {
+    public Transform transform;
+    public Data_Action data_Action;
+}
+
+
 public class GameManager : MonoBehaviour
 {
+
+    #region ƒVƒ“ƒOƒ‹ƒgƒ“
+    public static GameManager instance;
+    private void Awake() {
+        if (instance == null) {
+            instance = this;
+            DontDestroyOnLoad(this.gameObject);
+        }
+        else {
+            Destroy(this);
+        }
+    }
+    #endregion
+
+    public Transform point_Living;
+
+    public List<ActionPlace> list_ActionPlace = new List<ActionPlace>();
 
     UI_Manager UI;
 

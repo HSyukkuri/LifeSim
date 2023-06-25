@@ -6,36 +6,33 @@ using System;
 using UnityEngine.UI;
 using System.Linq;
 
+
+public enum Desire {
+    Toilet,
+    Eat,
+    Sleep,
+}
+
+
 public class PlayerController : MonoBehaviour
 {
-    public Transform point_Living;
-    public Transform point_Bed;
-    public Transform point_Table;
-    public Transform point_Toilet;
+
     public Text text;
 
     enum State {
         MoveToDestination,
-        Eating,
-        Sleeping,
-        SitOnToilet,
+        Action,
         DoNothing,
     }
 
     State currentState = State.MoveToDestination;
-    State targetState = State.DoNothing;
     bool stateEnter = false;
     float stateTime = 0f;
 
+    List<Action> list_Action = new List<Action>();
+    Action targetAction;
 
 
-    enum Desire {
-        Toilet,
-        Eat,
-        Sleep,
-    }
-
-    Dictionary<Desire, float> desireDictionary = new Dictionary<Desire, float>();
 
 
     void ChangeState(State newState) {
@@ -47,9 +44,7 @@ public class PlayerController : MonoBehaviour
 
     enum Anim_State {
         Stand = 0,
-        Eating = 1,
-        Toilet = 2,
-        Sleep = 3,
+        Action = 1,
     }
 
     void ChangeAnimState(Anim_State state) {
@@ -58,14 +53,17 @@ public class PlayerController : MonoBehaviour
 
     NavMeshAgent navMeshAgent;
     Animator animator;
+    AnimatorOverrideController animatorOverrideController;
 
     private void Start() {
         navMeshAgent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
+        animatorOverrideController = new AnimatorOverrideController(animator.runtimeAnimatorController);
+        animator.runtimeAnimatorController = animatorOverrideController;
 
-
-        foreach(Desire desire in Enum.GetValues(typeof(Desire))) {
-            desireDictionary.Add(desire, 0f);
+        foreach (var item in GameManager.instance.list_ActionPlace) {
+            Action newAction = new Action(item.data_Action, item.transform);
+            list_Action.Add(newAction);
         }
 
         ChangeState(State.MoveToDestination);
@@ -79,24 +77,22 @@ public class PlayerController : MonoBehaviour
 
         animator.SetFloat("PlayerSpeed", speed);
 
-        if(currentState != State.Eating) {
-            desireDictionary[Desire.Eat] += Time.deltaTime / 5f;
+        foreach (var item in list_Action) {
+            if(currentState == State.Action) {
+                item.Update(targetAction);
+            }
+            else {
+                item.Update(null);
+            }
+
         }
 
-        if(currentState != State.Sleeping) {
-            desireDictionary[Desire.Sleep] += Time.deltaTime / 10f;
-        }
-
-        if(currentState != State.SitOnToilet) {
-            desireDictionary[Desire.Toilet] += Time.deltaTime / 7f;
-        }
-
-        var sortedDesire = desireDictionary.OrderByDescending(i => i.Value);
+        list_Action.Sort((action1, action2) => action2.currentDesire.CompareTo(action1.currentDesire));
 
         text.text = "";
 
-        foreach(var sortedDesireElement in sortedDesire) {
-            text.text += sortedDesireElement.Key.ToString() + ":" + sortedDesireElement.Value + "\n";
+        foreach(var sortedDesireElement in list_Action) {
+            text.text += sortedDesireElement.data.desire.ToString() + ":" + sortedDesireElement.currentDesire + "\n";
         }
 
 
@@ -108,109 +104,117 @@ public class PlayerController : MonoBehaviour
             case State.MoveToDestination: {
                     if (stateEnter) {
 
-                        var topDesireElement = sortedDesire.ElementAt(0);
+                        targetAction = list_Action[0];
 
-                        if(topDesireElement.Value >= 1f) {
+                        if(targetAction.currentDesire >= 1f) {
 
-                            switch (topDesireElement.Key) {
-
-                                case Desire.Eat:
-                                    navMeshAgent.SetDestination(point_Table.position);
-                                    targetState = State.Eating;
-                                    break;
-
-                                case Desire.Sleep:
-                                    navMeshAgent.SetDestination(point_Bed.position);
-                                    targetState = State.Sleeping;
-                                    break;
-
-                                case Desire.Toilet:
-                                    navMeshAgent.SetDestination(point_Toilet.position);
-                                    targetState = State.SitOnToilet;
-                                    break;
-                            }
+                            navMeshAgent.SetDestination(targetAction.transform.position);
+                            
                         }
                         else {
-                            navMeshAgent.SetDestination(point_Living.position);
-                            targetState = State.DoNothing;
+                            navMeshAgent.SetDestination(GameManager.instance.point_Living.position);
+                            targetAction = null;
                         }
 
                         ChangeAnimState(Anim_State.Stand);
                     }
 
                     //–Ú“I’n‚É‚½‚Ç‚è’…‚¢‚½
-                    if(navMeshAgent.remainingDistance <= 0.01f && !navMeshAgent.pathPending) {
-                        ChangeState(targetState);
+                    if (navMeshAgent.remainingDistance <= 0.01f && !navMeshAgent.pathPending) {
+
+                        if(targetAction != null) {
+                            ChangeState(State.Action);
+                        }
+                        else {
+                            ChangeState(State.DoNothing);
+                        }
                         return;
                     }
-
                     return;
                 }
 
             case State.DoNothing: {
                     if (stateEnter) {
-
+                        
                     }
 
-                    if(sortedDesire.ElementAt(0).Value >= 1) {
+                    if (list_Action[0].currentDesire >= 1) {
+                        ChangeState(State.MoveToDestination);
+                        return;
+                    }
+                    return;
+                }
+
+            case State.Action: {
+                    if (stateEnter) {
+                        navMeshAgent.enabled = false;
+                        animatorOverrideController["Anim_Base"] = targetAction.data.clip;
+                        ChangeAnimState(Anim_State.Action);
+                        transform.position = targetAction.transform.position;
+                        transform.rotation = targetAction.transform.rotation;
+                    }
+
+
+                    if(targetAction.currentDesire <= 0f) {
+                        navMeshAgent.enabled = true;
                         ChangeState(State.MoveToDestination);
                         return;
                     }
 
-
                     return;
+
                 }
 
-            case State.Eating: {
-                    if (stateEnter) {
-                        navMeshAgent.enabled = false;
-                        ChangeAnimState(Anim_State.Eating);
-                        transform.position = point_Table.position;
-                        transform.rotation = point_Table.rotation;
-                    }
+            //case State.Eating: {
+            //        if (stateEnter) {
+            //            navMeshAgent.enabled = false;
+            //            ChangeAnimState(Anim_State.Eating);
+            //            transform.position = GameManager.instance.point_Table.position;
+            //            transform.rotation = GameManager.instance.point_Table.rotation;
+            //        }
 
-                    if(stateTime >= 3f) {
-                        navMeshAgent.enabled = true;
-                        desireDictionary[Desire.Eat] = 0f;
-                        ChangeState(State.MoveToDestination);
-                    }
+            //        if(stateTime >= 3f) {
+            //            navMeshAgent.enabled = true;
+            //            desireDictionary[Desire.Eat] = 0f;
+            //            ChangeState(State.MoveToDestination);
+            //        }
 
-                    return;
-                }
+            //        return;
+            //    }
 
-            case State.Sleeping: {
-                    if (stateEnter) {
-                        navMeshAgent.enabled = false;
-                        ChangeAnimState(Anim_State.Sleep);
-                        transform.position = point_Bed.position;
-                        transform.rotation = point_Bed.rotation;
-                    }
+            //case State.Sleeping: {
+            //        if (stateEnter) {
+            //            navMeshAgent.enabled = false;
+            //            ChangeAnimState(Anim_State.Sleep);
+            //            transform.position = GameManager.instance.point_Bed.position;
+            //            transform.rotation = GameManager.instance.point_Bed.rotation;
+            //        }
 
-                    if (stateTime >= 5f) {
-                        navMeshAgent.enabled = true;
-                        desireDictionary[Desire.Sleep] = 0f;
-                        ChangeState(State.MoveToDestination);
-                    }
+            //        if (stateTime >= 5f) {
+            //            navMeshAgent.enabled = true;
+            //            desireDictionary[Desire.Sleep] = 0f;
+            //            ChangeState(State.MoveToDestination);
+            //        }
 
-                    return;
-                }
+            //        return;
+            //    }
 
-            case State.SitOnToilet: {
-                    if (stateEnter) {
-                        navMeshAgent.enabled = false;
-                        ChangeAnimState(Anim_State.Toilet);
-                        transform.position = point_Toilet.position;
-                        transform.rotation = point_Toilet.rotation;
-                    }
+            //case State.SitOnToilet: {
+            //        if (stateEnter) {
+            //            navMeshAgent.enabled = false;
+            //            ChangeAnimState(Anim_State.Toilet);
+            //            transform.position = GameManager.instance.point_Toilet.position;
+            //            transform.rotation = GameManager.instance.point_Toilet.rotation;
+            //        }
 
-                    if (stateTime >= 3f) {
-                        navMeshAgent.enabled = true;
-                        desireDictionary[Desire.Toilet] = 0f;
-                        ChangeState(State.MoveToDestination);
-                    }
+            //        if (stateTime >= 3f) {
+            //            navMeshAgent.enabled = true;
+            //            desireDictionary[Desire.Toilet] = 0f;
+            //            ChangeState(State.MoveToDestination);
+            //        }
 
-                    return;
-                }
+            //        return;
+            //    }
         }
     }
 
