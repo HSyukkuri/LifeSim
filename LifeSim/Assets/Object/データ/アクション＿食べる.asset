@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   <clip>k__BackingField: {fileID: 7400000, guid: 5c4176448bb611545a89164e48ee8a74, type: 2}
   <desire>k__BackingField: 1
-  <desireSpeed>k__BackingField: 5
+  <desireSpeed>k__BackingField: 10
   <desireDecreaseSpeed>k__BackingField: 3
