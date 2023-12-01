@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e73632aa127515479147e77e28144a5, type: 3}
   m_Name: "\u30A2\u30AF\u30B7\u30E7\u30F3\uFF3F\u98DF\u3079\u308B"
   m_EditorClassIdentifier: 
+  <clip_Enter>k__BackingField: {fileID: 7400000, guid: 9775c09b3ee03124f800fafff893bffc, type: 2}
   <clip>k__BackingField: {fileID: 7400000, guid: 5c4176448bb611545a89164e48ee8a74, type: 2}
   <desire>k__BackingField: 1
   <desireSpeed>k__BackingField: 10

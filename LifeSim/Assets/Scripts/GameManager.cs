@@ -5,6 +5,7 @@ using Cinemachine;
 
 [System.Serializable]
 public class ActionPlace {
+    public Transform transform_Enter;
     public Transform transform;
     public Data_Action data_Action;
 }

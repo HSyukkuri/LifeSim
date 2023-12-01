@@ -21,6 +21,7 @@ public class PlayerController : MonoBehaviour
 
     enum State {
         MoveToDestination,
+        Action_Enter,
         Action,
         DoNothing,
     }
@@ -44,7 +45,8 @@ public class PlayerController : MonoBehaviour
 
     enum Anim_State {
         Stand = 0,
-        Action = 1,
+        ActionEnter = 1,
+        Action = 2,
     }
 
     void ChangeAnimState(Anim_State state) {
@@ -62,7 +64,7 @@ public class PlayerController : MonoBehaviour
         animator.runtimeAnimatorController = animatorOverrideController;
 
         foreach (var item in GameManager.instance.list_ActionPlace) {
-            Action newAction = new Action(item.data_Action, item.transform);
+            Action newAction = new Action(item.data_Action,item.transform_Enter, item.transform);
             list_Action.Add(newAction);
         }
 
@@ -113,32 +115,45 @@ public class PlayerController : MonoBehaviour
 
 
         switch (currentState) {
-
+            //目的地へ移動ステート
             case State.MoveToDestination: {
                     if (stateEnter) {
-
+                        //一番欲求の大きいアクションを取得
                         targetAction = list_Action[0];
-
+                        //もしそのアクションの欲求が１を上回っていたら
                         if(targetAction.currentDesire >= 1f) {
-
-                            navMeshAgent.SetDestination(targetAction.transform.position);
-                            
+                            //エンターアニメーションがある
+                            if(targetAction.transform_Enter != null) {
+                                //transform_Enterまで移動
+                                navMeshAgent.SetDestination(targetAction.transform_Enter.position);
+                            }
+                            //エンターモーションがない（トイレやベッドなど）
+                            else {
+                                //オブジェクトの原点へ移動
+                                navMeshAgent.SetDestination(targetAction.transform.position);
+                            }
                         }
+                        //もしそのアクションの欲求が1を下回っていたら
                         else {
+                            //リビングに移動する
                             navMeshAgent.SetDestination(GameManager.instance.point_Living.position);
                             targetAction = null;
                         }
 
+                        //歩くモーションを発動
                         ChangeAnimState(Anim_State.Stand);
                     }
 
                     //目的地にたどり着いた
                     if (navMeshAgent.remainingDistance <= 0.01f && !navMeshAgent.pathPending) {
-
+                        //targetActionがある（欲求がある）
                         if(targetAction != null) {
-                            ChangeState(State.Action);
+                            //アクションエンターステートに移行
+                            ChangeState(State.Action_Enter);
                         }
+                        //targetActionが無い（何もやることがない、リビングに到着した）
                         else {
+                            //ダラダラするステートに移行
                             ChangeState(State.DoNothing);
                         }
                         return;
@@ -155,6 +170,48 @@ public class PlayerController : MonoBehaviour
                         ChangeState(State.MoveToDestination);
                         return;
                     }
+                    return;
+                }
+
+            case State.Action_Enter: {
+                    if (stateEnter) {
+                        //ナビメッシュを停止
+                        navMeshAgent.enabled = false;
+                        //transform_Enterがあるかないかで分岐する
+                        //transform_Enterがある
+                        if(targetAction.transform_Enter != null) {
+                            //イカちゃんの位置と方向をエンターポジションにそろえる
+                            transform.position = targetAction.transform_Enter.position;
+                            transform.rotation = targetAction.transform_Enter.rotation;
+                            //エンターアニメーション発動
+                            animatorOverrideController["Anim_Base_Enter"] = targetAction.data.clip_Enter;
+                            ChangeAnimState(Anim_State.ActionEnter);
+
+                            //オブジェクト（机）のアニメーターを取得
+                            Animator anim_Object = targetAction.transform.GetComponent<Animator>();
+                            //オブジェクトのエンターアニメーション発動
+                            anim_Object.SetInteger("ID", 1);
+                        }
+                        //transform_Enterが無い
+                        else {
+                            //そのままアクションステートへジャンプ
+                            ChangeState(State.Action);
+                            return;
+                        }
+                    }
+                    
+                    //3秒経過
+                    if(stateTime >= 3.0f) {
+
+                        //オブジェクト（机）のアニメーションステートを待機に戻す
+                        Animator anim_Object = targetAction.transform.GetComponent<Animator>();
+                        anim_Object.SetInteger("ID", 0);
+
+                        //アクションステートに移行
+                        ChangeState(State.Action);
+                        return;
+                    }
+
                     return;
                 }
 

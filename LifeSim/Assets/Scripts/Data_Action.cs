@@ -5,10 +5,12 @@ using UnityEngine;
 public class Action {
     public Data_Action data { get; private set; }
     public float currentDesire { get; private set; }
+    public Transform transform_Enter { get; private set; }
     public Transform transform { get; private set; }
 
-    public Action(Data_Action _data, Transform _transform) {
+    public Action(Data_Action _data,Transform _transform_Enter, Transform _transform) {
         data = _data;
+        transform_Enter = _transform_Enter;
         transform = _transform;
         currentDesire = 0f;
     }
@@ -30,6 +32,7 @@ public class Action {
 [CreateAssetMenu(fileName = "新しいアクション", menuName = "自作データ/アクション")]
 public class Data_Action : ScriptableObject
 {
+    [field: SerializeField] public AnimationClip clip_Enter { get; private set; }
     [field: SerializeField] public AnimationClip clip { get; private set; }
     [field: SerializeField] public Desire desire { get; private set; }
     [field: SerializeField] public float desireSpeed { get; private set; }
