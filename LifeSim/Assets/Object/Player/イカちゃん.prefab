@@ -183,7 +183,7 @@ GameObject:
   - component: {fileID: 8852934210878493959}
   - component: {fileID: 8852934210878493956}
   m_Layer: 7
-  m_Name: Player
+  m_Name: "\u30A4\u30AB\u3061\u3083\u3093"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -254,7 +254,7 @@ Animator:
   m_Controller: {fileID: 9100000, guid: e8897209bb0b94e42a0054b575a101a4, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
-  m_ApplyRootMotion: 0
+  m_ApplyRootMotion: 1
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_WarningMessage: 
@@ -1334,7 +1334,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 8852934212275318330}
   m_RootOrder: 2
-  m_LocalEulerAnglesHint: {x: -0.27200046, y: 82.66799, z: 178.78503}
+  m_LocalEulerAnglesHint: {x: -6.235, y: 108.189, z: 168.454}
 --- !u!114 &8852934212491678063
 MonoBehaviour:
   m_ObjectHideFlags: 0
